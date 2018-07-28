@@ -1,26 +1,28 @@
 import json
 import subprocess
+from pathlib import Path
 
-from hatch.config import get_proper_pip, get_proper_python
+from hatch.config import get_proper_pip, get_proper_python, get_python_dir
 from hatch.utils import NEED_SUBPROCESS_SHELL, resolve_path
 
 
-def get_python_path():
+def get_python_path(path=None):
     return subprocess.check_output(
-        [get_proper_python(), '-c', 'import sys;print(sys.executable)'], shell=NEED_SUBPROCESS_SHELL
-    ).decode().strip()
-
-
-def get_python_version():
-    return subprocess.check_output(
-        [get_proper_python(), '-c', 'import sys;print(".".join(str(i) for i in sys.version_info[:3]))'],
+        [path or get_proper_python(), '-c', 'import sys;print(sys.executable)'],
         shell=NEED_SUBPROCESS_SHELL
     ).decode().strip()
 
 
-def get_python_implementation():
+def get_python_version(path=None):
     return subprocess.check_output(
-        [get_proper_python(), '-c', 'import platform;print(platform.python_implementation())'],
+        [path or get_proper_python(), '-c', 'import sys;print(".".join(str(i) for i in sys.version_info[:3]))'],
+        shell=NEED_SUBPROCESS_SHELL
+    ).decode().strip()
+
+
+def get_python_implementation(path=None):
+    return subprocess.check_output(
+        [path or get_proper_python(), '-c', 'import platform;print(platform.python_implementation())'],
         shell=NEED_SUBPROCESS_SHELL
     ).decode().strip()
 
@@ -86,3 +88,11 @@ def get_installed_packages(editable=True):
     ]
 
     return packages
+
+
+def get_available_pythons():  # no cov
+    return [
+        (path.name, str(path))
+        for path in sorted(Path(get_python_dir()).iterdir())
+        if path.is_dir()
+    ]

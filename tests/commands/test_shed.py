@@ -26,10 +26,10 @@ def test_pyname_config_not_exist():
         runner = CliRunner()
 
         with temp_move_path(SETTINGS_FILE, d):
-            result = runner.invoke(hatch, ['shed', '-p', 'python'])
+            result = runner.invoke(hatch, ['shed', '-p', 'pyname'])
 
-        assert result.exit_code == 1
-        assert 'Unable to locate config file. Try `hatch config --restore`.' in result.output
+        assert result.exit_code == 0
+        assert 'Python path named `pyname` already does not exist.' in result.output
 
 
 def test_pyname():

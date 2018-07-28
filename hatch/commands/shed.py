@@ -1,24 +1,25 @@
 import os
-import sys
+import shutil
 
 import click
 
-from hatch.commands.utils import (
-    CONTEXT_SETTINGS, echo_failure, echo_success, echo_warning
-)
-from hatch.config import get_venv_dir
+from hatch.commands.utils import CONTEXT_SETTINGS, echo_success, echo_warning
+from hatch.conda import get_conda_new_exe_path
+from hatch.config import get_python_dir, get_venv_dir
 from hatch.settings import load_settings, save_settings
-from hatch.utils import remove_path
+from hatch.utils import remove_path, resolve_path
 
 
 @click.command(context_settings=CONTEXT_SETTINGS,
                short_help='Removes named Python paths or virtual environments')
 @click.option('-p', '-py', '--pypath', 'pyname',
               help='Forward-slash-separated list of named Python paths.')
+@click.option('--python',
+              help='Forward-slash-separated list of Python installations.')
 @click.option('-e', '--env', 'env_name',
               help='Forward-slash-separated list of named virtual envs.')
 @click.pass_context
-def shed(ctx, pyname, env_name):
+def shed(ctx, pyname, python, env_name):
     """Removes named Python paths or virtual environments.
 
     \b
@@ -47,20 +48,27 @@ def shed(ctx, pyname, env_name):
     Successfully removed virtual env named `duplicate`.
     Successfully removed virtual env named `old`.
     """
-    if not (pyname or env_name):
+    if not (pyname or python or env_name):
         click.echo(ctx.get_help())
         return
 
     if pyname:
-        try:
-            settings = load_settings()
-        except FileNotFoundError:
-            echo_failure('Unable to locate config file. Try `hatch config --restore`.')
-            sys.exit(1)
-
+        settings = load_settings(lazy=True)
         for pyname in pyname.split('/'):
             pypath = settings.get('pypaths', {}).pop(pyname, None)
             if pypath is not None:
+                save_settings(settings)
+                echo_success('Successfully removed Python path named `{}`.'.format(pyname))
+            else:
+                echo_warning('Python path named `{}` already does not exist.'.format(pyname))
+
+    if python:
+        settings = load_settings(lazy=True)
+        for pyname in python.split('/'):
+            python_path = os.path.join(get_python_dir(), pyname)
+            if os.path.isdir(python_path):
+                conda_path = get_conda_new_exe_path(python_path)
+                python_exe = resolve_path(shutil.which('python', path=conda_path))
                 save_settings(settings)
                 echo_success('Successfully removed Python path named `{}`.'.format(pyname))
             else:

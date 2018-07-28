@@ -48,6 +48,13 @@ def get_admin_command():  # no cov
         return ['sudo', '-H'] + (['--user={}'.format(admin)] if admin else [])
 
 
+def get_python_exe(path):  # no cov
+    if ON_WINDOWS:
+        return os.path.join(path, 'python.exe')
+    else:
+        return os.path.join(path, 'bin', 'python')
+
+
 def find_project_root(d=None, max_depth=3):
     path = Path(d or os.getcwd())
     root = path.drive + path.root

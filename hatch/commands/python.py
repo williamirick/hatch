@@ -12,8 +12,31 @@ from hatch.commands.utils import (
 )
 from hatch.conda import get_conda_new_exe_path
 from hatch.config import get_python_dir
+from hatch.env import get_available_pythons, get_python_version, get_python_implementation
 from hatch.settings import copy_default_settings, load_settings, save_settings
-from hatch.utils import ON_WINDOWS, conda_available, resolve_path
+from hatch.utils import ON_WINDOWS, conda_available, get_python_exe, resolve_path
+
+
+def list_pythons(ctx, param, value):  # no cov
+    if not value or ctx.resilient_parsing:
+        return
+
+    pythons = get_available_pythons()
+
+    if pythons:
+        echo_success('Python installations found in `{}`:\n'.format(get_python_dir()))
+        for name, path in pythons:
+            echo_success('{} ->'.format(name))
+            if value == 1:
+                echo_info('  Version: {}'.format(get_python_version(get_python_exe(path))))
+            else:
+                echo_info('  Version: {}'.format(get_python_version(get_python_exe(path))))
+                echo_info('  Implementation: {}'.format(get_python_implementation(get_python_exe(path))))
+    else:
+        echo_failure('No Python installations found in `{}`. To install one '
+                     'do `hatch python VERSION`.'.format(get_python_dir()))
+
+    ctx.exit()
 
 
 @click.command(context_settings=CONTEXT_SETTINGS, short_help='Manages Python installations')
@@ -21,7 +44,12 @@ from hatch.utils import ON_WINDOWS, conda_available, resolve_path
 @click.argument('name', required=False)
 @click.option('--head/--tail', is_flag=True, default=None,
               help='Adds the installation to the head or tail of the user PATH.')
-def python(version, name, head):  # no cov
+@click.option('-l', '--list', 'show', count=True, is_eager=True, callback=list_pythons,
+              help=(
+                  'Shows available Python installations. Can stack up to 3 times to '
+                  'show more info.'
+              ))
+def python(version, name, head, show):  # no cov
     if not conda_available():
         echo_failure('Conda is unavailable. You can install it by doing `hatch conda`.')
         sys.exit(1)
